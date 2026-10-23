@@ -513,3 +513,143 @@ else{if(S.restDays.includes(ds))cls+=" rest";else if(goalMet(ds))cls+=" ok";else
 if(ds===t)cls+=" today";c+=`<div class="${cls}"><span>${d}</span></div>`}
 return `<div class="small" style="margin-bottom:10px;text-transform:capitalize">${mn}</div><div class="cal">${c}</div><div class="small" style="margin-top:10px">🟩 цель · 🟨 начат · 🟥 пропуск · 🟦 отдых · контур — сегодня</div>`}
 //====END3====
+//====PART4====
+function bossPanel(){const b=currentBoss();const dmg=Math.min(bossDamage(b),b.hp);const pct=Math.round(dmg/b.hp*100);const left=Math.max(0,7-(diffDays(S.bossWeek,today())+1));
+return `<div class="panel super boss ${S.bossDead?"done":""}"><div class="super-media"><div class="media"><div class="ico">${b.icon}</div></div></div><div>
+<div class="small gold">Босс недели</div><h2>${b.name}</h2><div class="small">${b.desc}</div>
+<div style="margin:10px 0" class="bar big"><div class="fill bad" style="width:${pct}%"></div></div>
+<div class="super-actions"><span class="small">${fmt(dmg)} / ${fmt(b.hp)} HP · Дней: ${left}</span><span class="badge ${S.bossDead?"gold":""}">${S.bossDead?"✅ Побеждён":"Награда: "+fmt(b.reward)}</span></div></div></div>`}
+function megaPanel(){const hp=25000;const dmg=Math.min(monthStats(),hp);const pct=Math.round(dmg/hp*100);
+return `<div class="panel super boss ${S.mbDead?"done":""}"><div class="super-media"><div class="media"><div class="ico">🐲</div></div></div><div>
+<div class="small gold">Мега-босс месяца</div><h2>Дракон Месяца</h2><div class="small">Урон = все монеты, заработанные за этот месяц.</div>
+<div style="margin:10px 0" class="bar big"><div class="fill bad" style="width:${pct}%"></div></div>
+<div class="super-actions"><span class="small">${fmt(dmg)} / ${fmt(hp)} HP</span><span class="badge ${S.mbDead?"gold":""}">${S.mbDead?"✅ Побеждён":"Награда: 10 000"}</span></div></div></div>`}
+function petPanel(){const lv=petLevel();const st=petStage(lv);
+return `<div class="panel super"><div class="super-media"><div class="media"><div class="ico pet-float">${st}</div></div></div><div>
+<div class="small gold">Питомец-компань</div><h2>${esc(S.pet.name)} · ур. ${lv}</h2>
+<div style="margin:10px 0" class="bar"><div class="fill ${S.pet.mood>=70?"good":S.pet.mood>=40?"gold":"bad"}" style="width:${S.pet.mood}%"></div></div>
+<div class="small">Настроение ${S.pet.mood}/100 ${S.pet.mood>=80?"· даёт +5% монет":S.pet.mood<=20?"· грустит…":"· корми квестами и заботой"}</div>
+<div class="super-actions"><span class="small">XP: ${fmt(S.pet.xp)}</span>${S.petFedDate!==today()?`<button class="mini" data-action="feedPet">🍖 Покормить</button>`:`<span class="badge gold">🍖 Сыт</span>`}</div></div></div>`}
+function reportPanel(){if(S.reportDate===today())return"";const yd=yest();const h=S.hist.find(x=>x.d===yd);
+const lines=[];
+lines.push(h?`Вчера: <b>${fmt(h.e)}</b> монет, квестов: <b>${h.q}</b>. ${goalMet(yd)?"Цель закрыта ✅":"Цель не закрыта ❌"}`:"Вчера данных нет — сегодня шанс начать!");
+lines.push(`Серия: <b>${S.s}</b> дн. · Питомец: <b>${S.pet.mood}/100</b> · Вклад: <b>${fmt(S.bank.dep)}</b>`);
+if(S.dq)lines.push(`Случайный квест дня: <b>${S.dq.i} ${esc(S.dq.t)}</b> (+${fmt(S.dq.p*2)})`);
+lines.push(sleptGood(today())?"Сон в норме 😴 → +10% монет сегодня":"Отметь сон, чтобы получить бонус");
+return `<div class="panel"><div class="small gold">🌅 Утренний отчёт</div><h2>Доброе утро, ${esc(S.profile.name||"Игрок")}!</h2>
+<div class="small" style="margin:10px 0">${lines.join("<br>")}</div>
+<button data-action="startDay">☀️ Начать день</button></div>`}
+function chainsPanel(){const t=today();const rows=CHAINS.map(c=>{const done=c.ids.filter(id=>S.ct.includes(id)).length;const claimed=S.chainsDone[c.id]===t;
+return `<div class="card"><div class="card-body"><b>${c.icon} ${c.name}</b><div class="small">${c.ids.length} квеста за день → +${c.bonus}</div>
+<div class="bar" style="margin-top:6px"><div class="fill ${claimed?"good":""}" style="width:${Math.round(done/c.ids.length*100)}%"></div></div>
+<div class="small">${claimed?"✅ Завершено":done+"/"+c.ids.length}</div></div></div>`}).join("");
+return `<div class="panel"><h2>Цепочки дня</h2><div class="grid">${rows}</div></div>`}
+function editQuestPanel(){const q=S.quests.find(x=>x.id===S.edit.id);if(!q){S.edit=null;return""}
+return `<div class="panel"><h2>Редактирование квеста</h2><div class="form"><input id="eq_t" value="${esc(q.t)}"><input id="eq_i" value="${esc(q.i||"")}"><input id="eq_p" type="number" min="1" value="${q.p}">
+<select id="eq_sk">${Object.keys(SKILL_META).map(k=>`<option value="${k}" ${(q.sk||"mind")===k?"selected":""}>${SKILL_META[k].icon} ${SKILL_META[k].name}</option>`).join("")}</select>
+<div class="card-actions"><button data-action="saveEdit">Сохранить</button><button class="danger" data-action="cancelEdit">Отмена</button></div></div></div>`}
+function editRewardPanel(){const r=S.rewards.find(x=>x.id===S.edit.id);if(!r){S.edit=null;return""}
+const curImg=editClearPhoto?"":(pendingEditPhoto||r.img||"");
+return `<div class="panel"><h2>Редактирование награды</h2><div class="form">
+${curImg?`<img class="prev big" src="${esc(curImg)}">`:`<div class="small">Фото не установлено — можно загрузить своё.</div>`}
+<label class="file-btn">📷 ${curImg?"Заменить фото":"Загрузить своё фото"}<input id="editRewardPhoto" type="file" accept="image/*" hidden></label>
+${curImg?`<button class="danger mini" data-action="removeEditPhoto">✕ Убрать фото</button>`:""}
+<input id="er_t" value="${esc(r.t)}"><input id="er_i" value="${esc(r.i||"")}"><input id="er_p" type="number" min="1" value="${r.p}">
+<select id="er_r">${Object.keys(RARITY_LABELS).map(k=>`<option value="${k}" ${(r.rarity||"common")===k?"selected":""}>${RARITY_LABELS[k]}</option>`).join("")}</select>
+<div class="card-actions"><button data-action="saveEdit">Сохранить</button><button class="danger" data-action="cancelEdit">Отмена</button></div></div></div>`}
+function questsTab(){const quests=S.quests.map(questCard).join("")||`<div class="empty">Нет квестов.</div>`;
+const dq=S.dq;const dqDone=S.dqDoneDate===today();
+const dqCard=dq?`<div class="card r-legendary ${dqDone?"done":""}"><div class="media"><div class="ico">${dq.i}</div></div>
+<div class="card-body"><b>🎲 ${esc(dq.t)}</b><div class="small">${SKILL_META[dq.sk].icon} Случайный квест дня · +${fmt(dq.p*2)} (×2)</div></div>
+<div class="card-actions"><button data-action="doneDQ" ${dqDone?"disabled":""}>${dqDone?"✅":"Выполнить"}</button></div></div>`:"";
+const buffsPanel=S.buffs.length?`<div class="panel"><h2>Активные баффы</h2><div class="grid">${S.buffs.map(buffCard).join("")}</div></div>`:"";
+const editPanel=(S.edit&&S.edit.kind==="quest")?editQuestPanel():"";
+const wm=weekMonday(today());const canRest=S.restUsedWeek!==wm&&!S.restDays.includes(today());
+return `${reportPanel()}${bossPanel()}${megaPanel()}${petPanel()}${editPanel}
+<div class="panel"><h2>Добавить квест</h2><div class="form"><input id="qt" placeholder="Название"><input id="qi" placeholder="Эмодзи или ссылка на картинку"><input id="qp" type="number" min="1" value="100">
+<select id="q_sk">${Object.keys(SKILL_META).map(k=>`<option value="${k}">${SKILL_META[k].icon} ${SKILL_META[k].name}</option>`).join("")}</select>
+<button data-action="addQuest">Добавить квест</button></div>
+<div class="hint">Цель дня: <b>${fmt(S.goal)} монет</b> или <b>3 квеста</b>. Бафф серии +20%: <b>${S.s>=3?"активен ⚡":"нет"}</b>${sleptGood(today())?" · Сон +10% 😴":""}${S.pet.mood>=80?" · Питомец +5% 🐾":""}</div></div>
+<div class="panel"><div class="super-actions" style="margin:0"><h2 style="margin:0">Квесты на сегодня</h2>
+${canRest?`<button class="mini" data-action="takeRest">😴 Взять легальный отдых</button>`:`<span class="badge">${S.restDays.includes(today())?"😴 Сегодня отдых":"Отдых использован на неделе"}</span>`}</div>
+<div class="grid" style="margin-top:12px">${dqCard}${quests}</div></div>
+${buffsPanel}${chainsPanel()}`}
+function shopTab(){const rewards=S.rewards.map(rewardCard).join("")||`<div class="empty">Нет наград.</div>`;
+const editPanel=(S.edit&&S.edit.kind==="reward")?editRewardPanel():"";
+return `${editPanel}
+<div class="panel"><h2>🏦 Банк «Дисциплина»</h2>
+<div class="row2"><div class="stat"><b>🪙 ${fmt(S.bank.dep)}</b><span>На вкладе</span></div><div class="stat"><b>💹 ${fmt(S.bank.interest)}</b><span>Заработано процентов</span></div></div>
+<div class="small" style="margin:10px 0">+2% в день, но только за дни с выполненной целью дня. Дисциплина приносит деньги.</div>
+<div class="form"><input id="bankAmt" type="number" min="1" placeholder="Сумма">
+<div class="card-actions"><button data-action="bankDep">Положить</button><button data-action="bankWith">Снять</button></div></div></div>
+<div class="panel"><h2>Добавить награду</h2><div class="form"><input id="rt" placeholder="Название"><input id="ri" placeholder="Эмодзи или ссылка"><input id="rp" type="number" min="1" value="1000">
+<label class="file-btn">📷 Своё фото для награды<input id="rewardPhoto" type="file" accept="image/*" hidden></label>
+<img id="rp_prev" class="prev" hidden>
+<button data-action="addReward">Добавить награду</button></div>
+<div class="hint">Фото сожмётся и сохранится внутри игры. Его будет видно на карточке награды и в инвентаре.</div></div>
+<div class="panel"><h2>Магазин наград</h2><div class="grid">${rewards}</div></div>`}
+function inventoryTab(){const items=S.inv.map(invCard).join("")||`<div class="empty">Инвентарь пуст.</div>`;
+return `<div class="panel"><h2>Инвентарь</h2><div class="small">Награды, медали боссов, сезонные трофеи.</div></div><div class="panel"><div class="grid">${items}</div></div>`}
+function seasonsTab(){if(S.seasonActive){const p=seasonProgress();if(p)return `<div class="panel super"><div class="super-media"><div class="media"><div class="ico">${p.cfg.icon}</div></div></div><div>
+<div class="small gold">Активный сезон</div><h2>${p.cfg.name}</h2><div class="small">${p.cfg.desc}</div>
+<div style="margin:10px 0" class="bar big"><div class="fill gold" style="width:${p.percent}%"></div></div>
+<div class="small">Дней цели: <b>${p.done}/${p.required}</b> · Осталось: <b>${p.daysLeft}</b> · Награда: <b>${fmt(p.cfg.rewardCoins)}</b></div></div></div>`}
+return `<div class="panel"><h2>Сезоны</h2><div class="small">Дополнительные испытания и трофеи.</div></div>
+<div class="grid">${["week","month"].map(k=>{const c=SEASONS[k];return `<div class="card"><div class="media"><div class="ico">${c.icon}</div></div>
+<div class="card-body"><b>${c.name}</b><div class="small">${c.desc}</div><div class="price">Награда: ${fmt(c.rewardCoins)}</div><div class="small">Завершено: ${S.seasonCompleted[k]}</div></div>
+<div class="card-actions"><button data-action="startSeason" data-id="${k}">Начать</button></div></div>`}).join("")}</div>`}
+function seasonSuccess(id){if(!S.seasonActive||S.seasonActive!==id||!S.seasonStart||!S.seasonEnd)return false;
+let d=S.seasonStart;const t=today();let done=0,el=0;while(d<=S.seasonEnd&&d<=t){el++;if(goalMet(d))done++;d=nextDate(d)}
+if(id==="week")return el>=SEASONS.week.days&&done>=SEASONS.week.days;if(id==="month")return done>=25;return false}
+function seasonProgress(){if(!S.seasonActive||!S.seasonStart||!S.seasonEnd)return null;const cfg=SEASONS[S.seasonActive];if(!cfg)return null;
+let d=S.seasonStart;const t=today();let done=0;while(d<=S.seasonEnd&&d<=t){if(goalMet(d))done++;d=nextDate(d)}
+const req=S.seasonActive==="week"?cfg.days:25;return{cfg,done,required:req,percent:Math.min(100,Math.round(done/req*100)),daysLeft:Math.max(0,diffDays(t,S.seasonEnd))}}
+function completeSeason(n=true){if(!S.seasonActive)return;const cfg=SEASONS[S.seasonActive];if(!cfg){S.seasonActive=null;save();return}
+S.seasonCompleted[cfg.id]++;S.coins+=cfg.rewardCoins;S.earned+=cfg.rewardCoins;addInventory(cfg.item.t,cfg.item.i,"season",cfg.id==="month"?"legendary":"epic","Сезон: "+cfg.name,"");S.seasonActive=null;save();
+if(n){toast("🎉 Сезон завершён: "+cfg.name+"! +"+fmt(cfg.rewardCoins),"success");playSound("level")}}
+function evaluateSeasons(n=false){if(!S.seasonActive)return;const cfg=SEASONS[S.seasonActive];if(!cfg){S.seasonActive=null;save();return}
+const t=today();if(seasonSuccess(S.seasonActive)){if(S.seasonActive==="month"||t>=S.seasonEnd)completeSeason(n);return}
+if(t>S.seasonEnd){S.seasonFailed++;S.seasonActive=null;save();if(n){toast("❌ Сезон провален.","error");playSound("error")}}}
+function startSeason(id){if(S.seasonActive)return;const cfg=SEASONS[id];if(!cfg)return;S.seasonActive=id;S.seasonStart=today();S.seasonEnd=addDays(today(),cfg.days-1);save();playSound("level");toast("Сезон начался: "+cfg.name,"success");render()}
+function achTab(){const un=S.u.length;const pct=Math.round(un/ACH.length*100);const sorted=ACH.slice().sort((a,b)=>(S.u.includes(b.id)?1:0)-(S.u.includes(a.id)?1:0));
+return `<div class="panel"><h2>Достижения</h2><div class="small">Открыто: <b>${un}</b> из <b>${ACH.length}</b></div><div style="margin-top:10px" class="bar"><div class="fill gold" style="width:${pct}%"></div></div></div>
+<div class="panel"><div class="achgrid">${sorted.map(achCard).join("")}</div></div>`}
+function progressTab(){const days=lastDays(14);const max=Math.max(...days.map(x=>x.e),1);const tot=days.reduce((s,x)=>s+x.e,0);const act=days.filter(x=>x.e>0).length;const avg=act?Math.round(tot/act):0;const best=days.reduce((a,b)=>b.e>a.e?b:a,days[0]);
+const chart=days.map(x=>`<div class="col" title="${x.label}: ${fmt(x.e)}"><div class="bar-v" style="height:${Math.max(2,Math.round(x.e/max*100))}%"></div><span>${x.label}</span></div>`).join("");
+const rank=discRank(S.disc);const dc=S.disc>=70?"good":S.disc>=40?"gold":"bad";
+const cur=weekRange(S.bossWeek);const lw=addDays(S.bossWeek,-7);const last=weekRange(lw);const duelMax=Math.max(cur,last,1);
+const skills=Object.keys(SKILL_META).map(k=>{const v=S.skills[k];const lv=1+Math.floor(v/1000);
+return `<div class="stat"><b>${SKILL_META[k].icon} ур. ${lv}</b><span>${SKILL_META[k].name} · ${fmt(v)}</span></div>`}).join("");
+return `<div class="panel"><h2>Календарь</h2>${calendarHTML()}</div>
+<div class="panel"><h2>Доход за 14 дней</h2><div class="chart">${chart}</div></div>
+<div class="panel"><h2>⚔️ Дуэль с прошлой неделей</h2>
+<div class="small">Эта неделя: <b>${fmt(cur)}</b> · Прошлая: <b>${fmt(last)}</b> · Побед: <b>${S.duelWins}</b></div>
+<div style="margin:10px 0 4px" class="small">Ты сейчас</div><div class="bar"><div class="fill good" style="width:${Math.round(cur/duelMax*100)}%"></div></div>
+<div style="margin:8px 0 4px" class="small">Прошлая неделя</div><div class="bar"><div class="fill bad" style="width:${Math.round(last/duelMax*100)}%"></div></div>
+<div class="small" style="margin-top:8px">Обгони прошлую себя к концу недели → +1000 монет.</div></div>
+<div class="panel"><h2>Дисциплина</h2><div class="small">Ранг: <b>${rank.icon} ${rank.name}</b> · ${S.disc}/100</div>
+<div style="margin:10px 0" class="bar big"><div class="fill ${dc}" style="width:${S.disc}%"></div></div>
+<div class="small">🥉 0–49 · 🥈 50–74 · 🥇 75–99 · 💎 100</div>
+<div style="margin-top:12px" class="notice">Пропусков: <b>${S.missed}</b> · Штрафов: <b>${S.fines}</b> · Щитом: <b>${S.shielded}</b> · Сумма: <b>${fmt(S.fineTotal)}</b></div></div>
+<div class="panel"><h2>🧠 Ветки навыков</h2><div class="stats profile-stats">${skills}</div>
+<div class="small" style="margin-top:10px">Каждый квест качает свою ветку. Держи баланс — получи достижение «Гармония».</div></div>
+<div class="panel"><h2>Статистика за 14 дней</h2><div class="stats profile-stats">
+<div class="stat"><b>${fmt(tot)}</b><span>Всего</span></div><div class="stat"><b>${fmt(avg)}</b><span>Среднее/активный день</span></div>
+<div class="stat"><b>${fmt(best.e)}</b><span>Лучший день</span></div><div class="stat"><b>${act}</b><span>Активных дней</span></div></div></div>`}
+function profileTab(){const stats=[["Баланс","🪙 "+fmt(S.coins)],["Заработано",fmt(S.earned)],["Потрачено",fmt(S.spent)],["Квестов",fmt(S.q)],["Покупок",fmt(S.purchases)],["Серия",fmt(S.s)],["Активных дней",fmt(S.ad.length)],["Начало",S.created]];
+const st=stats.map(([l,v])=>`<div class="stat"><b>${v}</b><span>${l}</span></div>`).join("");
+const avgSleep=(()=>{const last7=S.sleepLog.slice(-7);if(!last7.length)return 0;return Math.round(last7.reduce((s,e)=>s+e.h,0)/last7.length*10)/10})();
+return `<div class="panel profile"><div class="avatar-large">${S.profile.avatar?`<img src="${esc(S.profile.avatar)}">`:"🧙‍️"}</div>
+<label class="file-btn">📷 Загрузить аватар<input id="avatarInput" type="file" accept="image/*" hidden></label>
+<div class="form" style="width:100%"><input id="pname" placeholder="Имя" value="${esc(S.profile.name)}"><textarea id="pbio" placeholder="О себе">${esc(S.profile.bio)}</textarea>
+<button data-action="saveProfile">Сохранить профиль</button></div></div>
+<div class="panel"><h2>🌙 Сон и 🔔 напоминания</h2>
+<div class="small">Сегодня спал(а) часов: <b>${(S.sleepLog.find(e=>e.d===today())||{}).h||"—"}</b> · Среднее за 7 дней: <b>${avgSleep||"—"}</b> · Рекорд серии: <b>${S.bestSleepStreak}</b> ${sleptGood(today())?"· 😴 +10% сегодня":""}</div>
+<div class="form" style="margin-top:10px"><input id="sleepH" type="number" step="0.5" min="0" max="24" placeholder="Часы сна (7-9 = бонус)">
+<button data-action="saveSleep">Сохранить сон</button></div>
+<div style="margin-top:10px"><button data-action="toggleRemind">${S.remind?"🔕 Выключить напоминания":"🔔 Включить напоминания"}</button></div>
+<div class="small" style="margin-top:8px">Напоминание приходит вечером, если цель дня не закрыта (страница должна быть открыта).</div></div>
+<div class="panel"><h2>Настройки баланса</h2><div class="form"><input id="goalInput" type="number" min="50" max="5000" value="${S.goal}"><button data-action="saveGoal">Сохранить цель дня</button></div></div>
+<div class="panel"><h2>Статистика</h2><div class="stats profile-stats">${st}</div></div>
+<div class="panel"><button class="danger" data-action="reset">Сбросить весь прогресс</button></div>`}
+//====END4====
