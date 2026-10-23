@@ -206,3 +206,194 @@ JSON.parse(JSON.stringify(CHEST_RARE)),
 {id:"clothes",t:"Новая вещь",i:"👕",p:22000,rarity:"epic"},
 JSON.parse(JSON.stringify(CHEST_LEGEND))];
 //====END1====
+//====PART2====
+const RARITY_LABELS={common:"Обычная",rare:"Редкая",epic:"Эпическая",legendary:"Легендарная"};
+const RARE_BUFFS=[
+{key:"coin25",name:"Прилив сил",icon:"⚡",kind:"coinPct",value:25,days:2,rarity:"rare",desc:"+25% монет на 2 дня"},
+{key:"shield",name:"Щит от штрафа",icon:"🛡️",kind:"shield",uses:1,days:7,rarity:"rare",desc:"Блокирует 1 штраф"},
+{key:"guard",name:"Страж серии",icon:"🔥",kind:"streakGuard",uses:1,days:7,rarity:"rare",desc:"Сохраняет серию при пропуске"}];
+const LEGEND_BUFFS=[
+{key:"coin50",name:"Золотая лихорадка",icon:"🌟",kind:"coinPct",value:50,days:3,rarity:"legendary",desc:"+50% монет на 3 дня"},
+{key:"double3",name:"Двойной удар",icon:"✨",kind:"doubleNext",uses:3,days:3,rarity:"legendary",desc:"3 квеста ×2 монет"},
+{key:"amulet",name:"Амулет дисциплины",icon:"🧿",kind:"shield",uses:1,days:7,rarity:"legendary",desc:"+15 дисциплины и блокирует 1 штраф"}];
+const SEASONS={
+week:{id:"week",name:"Неделя силы",icon:"⚡",days:7,desc:"7 дней подряд выполняй цель дня.",rewardCoins:3000,item:{t:"Медаль «Неделя силы»",i:"⚡"}},
+month:{id:"month",name:"Месяц дисциплины",icon:"🧱",days:30,desc:"Выполни цель дня 25 раз за 30 дней.",rewardCoins:15000,item:{t:"Кубок «Месяц дисциплины»",i:"🏆"}}};
+const BOSSES=[
+{key:"prokr",name:"Босс Прокрастинация",icon:"🐉",hp:3000,rule:"coins",mult:1,reward:2500,desc:"Урон = монеты за неделю."},
+{key:"haos",name:"Босс Хаос",icon:"👹",hp:2000,rule:"quests",mult:100,reward:2500,desc:"Урон = квесты за неделю ×100."},
+{key:"ustal",name:"Босс Усталость",icon:"🧟",hp:2500,rule:"days",mult:500,reward:3000,desc:"Урон = дни с целью ×500."},
+{key:"somn",name:"Босс Сомнения",icon:"👻",hp:3500,rule:"coins",mult:1,reward:3000,desc:"Урон = монеты за неделю."},
+{key:"dedl",name:"Босс Дедлайн",icon:"🦖",hp:3000,rule:"quests",mult:150,reward:3000,desc:"Урон = квесты за неделю ×150."},
+{key:"skroll",name:"Босс Скролл-Император",icon:"🐙",hp:3000,rule:"days",mult:600,reward:3000,desc:"Урон = дни с целью ×600."}];
+const DQ_POOL=[
+{t:"Контрастный душ",i:"🚿",p:250,sk:"body"},
+{t:"10 минут растяжки",i:"🤸",p:200,sk:"body"},
+{t:"Написать старому другу",i:"💬",p:200,sk:"mind"},
+{t:"Разобрать рабочий стол",i:"🗄️",p:200,sk:"home"},
+{t:"Выпить 2 литра воды",i:"🥤",p:250,sk:"body"},
+{t:"30 минут без телефона",i:"📴",p:250,sk:"mind"},
+{t:"50 приседаний",i:"🏋️",p:200,sk:"body"},
+{t:"Приготовить новое блюдо",i:"🍳",p:250,sk:"home"},
+{t:"Выучить 10 новых слов",i:"🧠",p:250,sk:"mind"},
+{t:"Спланировать бюджет",i:"💳",p:250,sk:"work"},
+{t:"Разобрать почту и входящие",i:"📥",p:200,sk:"work"},
+{t:"Уход за растениями/домом",i:"🪴",p:150,sk:"home"}];
+const CHAINS=[
+{id:"morning",name:"Утро воина",icon:"🌅",ids:["water","plan","move"],bonus:150},
+{id:"cleanhome",name:"Чистый дом",icon:"🧽",ids:["clean","cook"],bonus:100},
+{id:"zen",name:"Спокойный разум",icon:"🧘",ids:["calm","read","noscroll"],bonus:150}];
+function today(d=new Date()){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function yest(){const d=new Date();d.setDate(d.getDate()-1);return today(d)}
+function addDays(s,n){const[y,m,d]=s.split("-").map(Number);return today(new Date(y,m-1,d+n))}
+function nextDate(s){return addDays(s,1)}
+function parseDate(s){const[y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)}
+function diffDays(a,b){return Math.round((parseDate(b)-parseDate(a))/86400000)}
+function weekMonday(s){const d=parseDate(s);return addDays(s,-((d.getDay()+6)%7))}
+function weekIndex(){return Math.floor((parseDate(weekMonday(today()))-parseDate("2024-01-01"))/604800000)}
+function currentBoss(){return BOSSES[((weekIndex()%BOSSES.length)+BOSSES.length)%BOSSES.length]}
+function hashStr(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))%99991;return h}
+function isUrl(s){return /^https?:\/\/|^data:image\//.test(s||"")}
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function fmt(n){return Number(n||0).toLocaleString("ru-RU")}
+function clamp(n,a=0,b=100){return Math.max(a,Math.min(b,Math.round(n)))}
+function rand(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+function emojiOf(it,d){if(it.img)return d;if(isUrl(it.i))return d;return it.i||d}
+function discRank(d){if(d>=100)return{name:"Платина",icon:"💎"};if(d>=75)return{name:"Золото",icon:"🥇"};if(d>=50)return{name:"Серебро",icon:"🥈"};return{name:"Бронза",icon:"🥉"}}
+function val(id){const e=document.getElementById(id);return e?e.value.trim():""}
+function petStage(l){return l>=7?"🐉":l>=5?"🐲":l>=4?"🦁":l>=3?"🐺":l>=2?"🐣":"🥚"}
+function petLevel(){return 1+Math.floor(S.pet.xp/500)}
+function fileToDataURL(file,size,q,cb){const url=URL.createObjectURL(file);const img=new Image();
+img.onload=function(){const w=img.width,h=img.height;const k=Math.min(1,size/Math.max(w,h));
+const cw=Math.max(1,Math.round(w*k)),ch=Math.max(1,Math.round(h*k));
+const c=document.createElement("canvas");c.width=cw;c.height=ch;c.getContext("2d").drawImage(img,0,0,cw,ch);
+cb(c.toDataURL("image/jpeg",q));URL.revokeObjectURL(url)};
+img.onerror=function(){URL.revokeObjectURL(url);cb(null)};img.src=url}
+function defaults(){return{
+created:today(),coins:0,earned:0,spent:0,q:0,cq:0,cr:0,purchases:0,
+headphonesBought:0,rareBought:0,epicBought:0,legendBought:0,chestsBought:0,
+buffsFound:0,legendBuffsFound:0,shielded:0,
+s:0,ld:null,ad:[],td:today(),ct:[],tc:0,tp:0,bc:0,bp:0,
+disc:100,missed:0,fines:0,fineTotal:0,lastDayChecked:today(),goal:300,
+hist:[],u:[],buffs:[],chestDayDate:null,chestDayRare:0,chestDayLegend:0,
+bossWeek:null,bossDead:false,bossKills:0,bossTypes:{},
+mbMonth:null,mbDead:false,mbKills:0,duelWins:0,
+edits:0,edit:null,lastHour:null,lastDow:null,fullClears:0,fullClearDate:null,
+skills:{body:0,mind:0,work:0,home:0},
+pet:{name:"Квестик",mood:80,xp:0},petFedDate:null,
+reportDate:null,
+bank:{dep:0,interest:0},bankDeps:0,
+dq:null,dqDoneDate:null,dqCount:0,
+chainsDone:{},chainCount:0,
+restUsedWeek:null,restDays:[],
+sleepLog:[],bestSleepStreak:0,
+remind:false,remindDate:null,
+quests:JSON.parse(JSON.stringify(DEFAULT_QUESTS)),
+rewards:JSON.parse(JSON.stringify(DEFAULT_REWARDS)),
+profile:{name:"Игрок",bio:"Строю лучшую версию себя.",avatar:"",saved:0},
+sound:true,theme:"dark",tab:"quests",inv:[],
+seasonActive:null,seasonStart:null,seasonEnd:null,seasonCompleted:{week:0,month:0},seasonFailed:0}}
+function normalize(x){const d=defaults();if(!x||typeof x!=="object")return d;
+const nums=["coins","earned","spent","q","cq","cr","purchases","headphonesBought","rareBought","epicBought","legendBought","chestsBought","buffsFound","legendBuffsFound","shielded","s","tc","tp","bc","bp","disc","missed","fines","fineTotal","goal","seasonFailed","chestDayRare","chestDayLegend","bossKills","mbKills","duelWins","edits","fullClears","chainCount","dqCount","bankDeps","bestSleepStreak"];
+nums.forEach(k=>{if(typeof x[k]!=="number"||isNaN(x[k]))x[k]=0});
+x.disc=clamp(x.disc);if(!(x.goal>0))x.goal=300;
+["ad","ct","u","quests","rewards","hist","inv","buffs","restDays","sleepLog"].forEach(k=>{if(!Array.isArray(x[k]))x[k]=[]});
+if(!x.quests.length)x.quests=d.quests;
+if(!Array.isArray(x.rewards))x.rewards=d.rewards;
+const mig={random_small:CHEST_RARE,random_big:CHEST_LEGEND};
+x.rewards=x.rewards.map(r=>{if(mig[r.id]){const c=JSON.parse(JSON.stringify(mig[r.id]));c.bought=r.bought||0;return c}return r});
+x.rewards.forEach(r=>{if(r.id==="headphones"&&r.p===45000&&!x.headphonesBought)r.p=60000});
+x.hist=x.hist.filter(h=>h&&typeof h.d==="string");x.hist.forEach(h=>{h.e=Number(h.e)||0;h.q=Number(h.q)||0});
+x.inv=x.inv.filter(i=>i&&typeof i.t==="string");
+x.buffs=x.buffs.filter(b=>b&&typeof b.key==="string");
+x.sleepLog=x.sleepLog.filter(e=>e&&typeof e.d==="string");x.sleepLog.forEach(e=>{e.h=Number(e.h)||0});
+if(!x.skills||typeof x.skills!=="object")x.skills={body:0,mind:0,work:0,home:0};
+["body","mind","work","home"].forEach(k=>{x.skills[k]=Number(x.skills[k])||0});
+if(!x.pet||typeof x.pet!=="object")x.pet={name:"Квестик",mood:80,xp:0};
+x.pet.mood=clamp(x.pet.mood);x.pet.xp=Number(x.pet.xp)||0;if(typeof x.pet.name!=="string")x.pet.name="Квестик";
+if(!x.bank||typeof x.bank!=="object")x.bank={dep:0,interest:0};
+x.bank.dep=Number(x.bank.dep)||0;x.bank.interest=Number(x.bank.interest)||0;
+if(!x.chainsDone||typeof x.chainsDone!=="object")x.chainsDone={};
+if(typeof x.created!=="string")x.created=d.created;
+if(typeof x.td!=="string")x.td=today();
+if(typeof x.ld!=="string"&&x.ld!==null)x.ld=null;
+if(typeof x.lastDayChecked!=="string")x.lastDayChecked=today();
+if(typeof x.chestDayDate!=="string")x.chestDayDate=null;
+if(typeof x.bossWeek!=="string")x.bossWeek=null;
+if(typeof x.bossDead!=="boolean")x.bossDead=false;
+if(!x.bossTypes||typeof x.bossTypes!=="object")x.bossTypes={};
+if(typeof x.mbMonth!=="string")x.mbMonth=null;
+if(typeof x.mbDead!=="boolean")x.mbDead=false;
+if(typeof x.lastHour!=="number")x.lastHour=null;
+if(typeof x.lastDow!=="number")x.lastDow=null;
+if(typeof x.fullClearDate!=="string")x.fullClearDate=null;
+if(typeof x.petFedDate!=="string")x.petFedDate=null;
+if(typeof x.reportDate!=="string")x.reportDate=null;
+if(typeof x.dqDoneDate!=="string")x.dqDoneDate=null;
+if(typeof x.restUsedWeek!=="string")x.restUsedWeek=null;
+if(typeof x.remindDate!=="string")x.remindDate=null;
+if(typeof x.remind!=="boolean")x.remind=false;
+if(x.dq&&x.dq.date!==today())x.dq=null;
+if(!(x.edit&&typeof x.edit==="object"&&(x.edit.kind==="quest"||x.edit.kind==="reward")))x.edit=null;
+if(!x.profile||typeof x.profile!=="object")x.profile=d.profile;else x.profile={...d.profile,...x.profile};
+if(typeof x.sound!=="boolean")x.sound=true;
+if(typeof x.theme!=="string"||!["dark","light"].includes(x.theme))x.theme="dark";
+const tabs=["quests","shop","inv","seasons","ach","progress","profile"];
+if(!tabs.includes(x.tab))x.tab="quests";
+if(!x.headphonesBought&&!x.rewards.some(r=>r.id==="headphones"))x.rewards.unshift(JSON.parse(JSON.stringify(DEFAULT_REWARDS[0])));
+if(!x.seasonCompleted||typeof x.seasonCompleted!=="object")x.seasonCompleted={week:0,month:0};
+["week","month"].forEach(k=>{x.seasonCompleted[k]=Number(x.seasonCompleted[k])||0});
+if(typeof x.seasonActive!=="string"||!["week","month"].includes(x.seasonActive))x.seasonActive=null;
+if(x.seasonActive&&(typeof x.seasonStart!=="string"||typeof x.seasonEnd!=="string")){x.seasonActive=null;x.seasonStart=null;x.seasonEnd=null}
+return x}
+let S;try{S=normalize(JSON.parse(localStorage.getItem("life-quest-pro-max")||"null"))}catch(e){S=defaults()}
+function save(){try{localStorage.setItem("life-quest-pro-max",JSON.stringify(S))}catch(e){}}
+function sleptGood(d){const e=S.sleepLog.find(x=>x.d===d);return !!(e&&e.h>=7&&e.h<=9)}
+function sleepStreak(){let n=0;let d=sleptGood(today())?today():yest();while(sleptGood(d)){n++;d=addDays(d,-1)}return n}
+function goalMet(d){const h=S.hist.find(x=>x.d===d);return !!(h&&(h.e>=S.goal||h.q>=3))}
+function goalMetOrRest(d){return goalMet(d)||S.restDays.includes(d)}
+function gapAllRest(from){let d=nextDate(from);const t=today();while(d<t){if(!S.restDays.includes(d))return false;d=nextDate(d)}return true}
+function ensureDQ(){const t=today();if(!S.dq||S.dq.date!==t){const h=hashStr(t);const tpl=DQ_POOL[h%DQ_POOL.length];S.dq={date:t,t:tpl.t,i:tpl.i,p:tpl.p,sk:tpl.sk};save()}}
+function syncBoss(){const wm=weekMonday(today());
+if(S.bossWeek&&S.bossWeek!==wm){const prev=weekRange(S.bossWeek);const prev2=weekRange(addDays(S.bossWeek,-7));
+if(prev>0&&prev>prev2){S.duelWins++;S.coins+=1000;S.earned+=1000;toast("⚔️ Дуэль с прошлой неделей выиграна! +1000 монет","success")}}
+if(S.bossWeek!==wm){S.bossWeek=wm;S.bossDead=false;save()}}
+function syncMega(){const mk=today().slice(0,7);if(S.mbMonth!==mk){S.mbMonth=mk;S.mbDead=false;save()}}
+function weekRange(monday){let e=0;const end=addDays(monday,6);for(const h of S.hist)if(h.d>=monday&&h.d<=end)e+=h.e;return e}
+function expireBuffs(){const t=today();const b=S.buffs.length;S.buffs=S.buffs.filter(x=>x.exp>=t&&(x.uses===null||x.uses===undefined||x.uses>0));if(S.buffs.length!==b)save()}
+function ensureToday(){const t=today();if(S.td!==t){S.td=t;S.ct=[];S.tc=0;S.tp=0}
+expireBuffs();syncBoss();syncMega();ensureDQ()}
+function buffCoinPct(){const t=today();return S.buffs.filter(b=>b.kind==="coinPct"&&b.exp>=t).reduce((s,b)=>s+(b.value||0),0)}
+function addBuff(def){const b={id:"buff"+Date.now()+rand(100,999),key:def.key,name:def.name,icon:def.icon,kind:def.kind,value:def.value||0,uses:def.uses!==undefined?def.uses:null,exp:addDays(today(),def.days),rarity:def.rarity,desc:def.desc};S.buffs.push(b);S.buffsFound++;if(def.rarity==="legendary")S.legendBuffsFound++;if(def.key==="amulet")S.disc=clamp(S.disc+15);save();return b}
+function updateHist(a){const t=today();let h=S.hist.find(x=>x.d===t);if(!h){h={d:t,e:0,q:0};S.hist.push(h)}h.e+=a;h.q+=1;if(S.hist.length>400)S.hist=S.hist.slice(-400)}
+function applyMissedDays(){if(!S.lastDayChecked)S.lastDayChecked=today();
+const yesterday=yest();let d=S.lastDayChecked,applied=0,fineCoins=0,blocked=0,cap=0;
+while(d<yesterday&&cap<30){d=nextDate(d);
+if(goalMetOrRest(d)){if(S.bank.dep>0){const g=Math.round(S.bank.dep*0.02);S.bank.dep+=g;S.bank.interest+=g}S.pet.mood=clamp(S.pet.mood+2)}
+else{S.pet.mood=clamp(S.pet.mood-8);
+const shield=S.buffs.find(b=>b.kind==="shield"&&b.uses>0&&b.exp>=d);
+if(shield){shield.uses--;S.shielded++;blocked++}
+else{S.missed++;S.fines++;S.disc=clamp(S.disc-7);const f=Math.min(S.coins,200);S.coins-=f;S.fineTotal+=f;fineCoins+=f;applied++}}}
+cap++}
+if(S.lastDayChecked<yesterday)S.lastDayChecked=yesterday;
+if(applied||blocked||cap)save();
+return{applied,fineCoins,blocked}}
+function levelInfo(p){let i=0;for(let x=0;x<LEVEL_THRESHOLDS.length;x++)if(p>=LEVEL_THRESHOLDS[x])i=x;
+const cur=LEVEL_THRESHOLDS[i],next=LEVEL_THRESHOLDS[i+1]||0;
+return{level:i+1,name:LEVEL_NAMES[i]||"Максимум",cur,next,prog:next?Math.min(100,((p-cur)/(next-cur))*100):100}}
+function weekStats(){let e=0,q=0,g=0;const t=today();for(const h of S.hist)if(h.d>=S.bossWeek&&h.d<=t){e+=h.e;q+=h.q;if(goalMet(h.d))g++}return{e,q,g}}
+function monthStats(){const mk=today().slice(0,7);let e=0;for(const h of S.hist)if(h.d.slice(0,7)===mk)e+=h.e;return e}
+function bossDamage(b){const ws=weekStats();if(b.rule==="coins")return ws.e*b.mult;if(b.rule==="quests")return ws.q*b.mult;if(b.rule==="days")return ws.g*b.mult;return 0}
+function checkBoss(n){if(S.bossDead)return;const b=currentBoss();if(bossDamage(b)>=b.hp){S.bossDead=true;S.bossKills++;S.bossTypes[b.key]=(S.bossTypes[b.key]||0)+1;S.coins+=b.reward;S.earned+=b.reward;addInventory("Медаль «"+b.name+"»",b.icon,"boss","epic","Неделя: "+S.bossWeek,"");save();if(n){toast("🐉 Босс побеждён: "+b.name+"! +"+fmt(b.reward),"success");playSound("level")}}}
+function checkMega(n){if(S.mbDead)return;const hp=25000;if(monthStats()>=hp){S.mbDead=true;S.mbKills++;S.coins+=10000;S.earned+=10000;addInventory("Сердце Мега-босса","🐲","boss","legendary","Месяц: "+S.mbMonth,"");save();if(n){toast("🐲 МЕГА-БОСС МЕСЯЦА ПОВЕРЖЕН! +10 000 монет","success");playSound("level")}}}
+let audioCtx=null;
+function ensureAudio(){if(!audioCtx){try{audioCtx=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(audioCtx&&audioCtx.state==="suspended")audioCtx.resume()}
+function tone(f,dur=0.08,type="square",delay=0,vol=0.04){if(!audioCtx)return;const t=audioCtx.currentTime+delay;const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type;o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.001,t+dur);o.connect(g);g.connect(audioCtx.destination);o.start(t);o.stop(t+dur+0.03)}
+function playSound(n){if(!S.sound)return;ensureAudio();if(!audioCtx)return;
+if(n==="click")tone(340,.06);
+if(n==="coin"){tone(880,.07);tone(1320,.13,"square",.07)}
+if(n==="buy")[523,392,523,659].forEach((f,i)=>tone(f,.09,"square",i*.07));
+if(n==="level")[523,659,784,1046].forEach((f,i)=>tone(f,.12,"square",i*.09));
+if(n==="achievement")[660,880,990,1320].forEach((f,i)=>tone(f,.1,"triangle",i*.07));
+if(n==="error"){tone(130,.18,"sawtooth");tone(92,.25,"sawtooth",.12)}}
+//====END2====
