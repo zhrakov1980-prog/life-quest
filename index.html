@@ -397,3 +397,119 @@ if(n==="level")[523,659,784,1046].forEach((f,i)=>tone(f,.12,"square",i*.09));
 if(n==="achievement")[660,880,990,1320].forEach((f,i)=>tone(f,.1,"triangle",i*.07));
 if(n==="error"){tone(130,.18,"sawtooth");tone(92,.25,"sawtooth",.12)}}
 //====END2====
+//====PART3====
+const ACH=[];const ROMAN=["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX"];
+function addTier(p,ic,base,desc,vals,fn){vals.forEach((v,i)=>ACH.push({id:p+(i+1),icon:ic,name:base+" "+(ROMAN[i]||(i+1)),desc:desc.replace("{v}",fmt(v)),test:s=>fn(s,v)}))}
+addTier("q","🎯","Квестолог","Выполни квестов: {v}",[1,5,10,25,50,100,250,500,1000,2000],(s,v)=>s.q>=v);
+addTier("earn","💰","Заработок","Заработай всего {v} монет",[100,500,1000,5000,10000,25000,50000,100000,250000,500000],(s,v)=>s.earned>=v);
+addTier("save","🏦","Накопление","Накопи на счету {v} монет",[1000,5000,10000,25000,50000,100000,250000,500000],(s,v)=>s.coins>=v);
+addTier("lvl","⭐","Уровень","Достигни уровня {v}",[2,5,10,15,20,25,30,35],(s,v)=>levelInfo(s.earned).level>=v);
+addTier("streak","🔥","Серия","Серия дней: {v}",[2,3,7,14,30,60,100,365],(s,v)=>s.s>=v);
+addTier("active","📅","Активность","Активные дни: {v}",[3,7,14,30,60,100,200],(s,v)=>s.ad.length>=v);
+addTier("dayq","⚡","Ударный день","Квестов за день: {v}",[3,5,10,15],(s,v)=>s.bc>=v);
+addTier("dayp","💸","Дневной доход","Монет за день: {v}",[100,300,500,1000,2000,3000],(s,v)=>s.bp>=v);
+addTier("cq","🧩","Свои квесты","Добавь квестов: {v}",[1,5,10,25],(s,v)=>s.cq>=v);
+addTier("cr","🛍️","Свои награды","Добавь наград: {v}",[1,5,10],(s,v)=>s.cr>=v);
+addTier("buy","🛒","Покупатель","Покупок: {v}",[1,5,10,25,50],(s,v)=>s.purchases>=v);
+addTier("spend","🪙","Траты","Потрать: {v}",[500,2000,10000,25000,50000,100000],(s,v)=>s.spent>=v);
+addTier("disc","🧱","Дисциплина","Дисциплина не ниже {v}",[50,70,90,100],(s,v)=>s.disc>=v);
+addTier("miss","🌧️","Штрафник","Штрафов: {v}",[1,3,7,14],(s,v)=>s.missed>=v);
+addTier("chests","🧰","Сундуки","Открой сундуков: {v}",[1,3,5,10,25],(s,v)=>s.chestsBought>=v);
+ACH.push({id:"avatar",icon:"🖼️",name:"Личный стиль",desc:"Загрузи аватар",test:s=>!!(s.profile&&s.profile.avatar)});
+ACH.push({id:"profile_saved",icon:"✍️",name:"Профиль",desc:"Сохрани профиль",test:s=>!!(s.profile&&s.profile.saved)});
+ACH.push({id:"headphones_goal",icon:"🎧",name:"Цель: наушники",desc:"Купи супер-награду",test:s=>s.headphonesBought>=1});
+ACH.push({id:"rare_first",icon:"🎁",name:"Редкая добыча",desc:"Купи редкую награду",test:s=>s.rareBought>=1});
+ACH.push({id:"epic_first",icon:"🌠",name:"Эпическая добыча",desc:"Купи эпическую награду",test:s=>s.epicBought>=1});
+ACH.push({id:"legend_first",icon:"👑",name:"Легендарная добыча",desc:"Купи легендарную награду",test:s=>s.legendBought>=1});
+ACH.push({id:"buff_active",icon:"⚡",name:"Бафф серии",desc:"Серия 3 дня = +20%",test:s=>s.s>=3});
+ACH.push({id:"buff_first",icon:"🧪",name:"Первый бафф",desc:"Получи бафф из сундука",test:s=>s.buffsFound>=1});
+ACH.push({id:"buff_legend",icon:"🌟",name:"Легендарный бафф",desc:"Получи легендарный бафф",test:s=>s.legendBuffsFound>=1});
+ACH.push({id:"shield_used",icon:"🛡️",name:"Под защитой",desc:"Заблокируй штраф щитом",test:s=>s.shielded>=1});
+ACH.push({id:"rank_silver",icon:"🥈",name:"Серебряная воля",desc:"Дисциплина 50+",test:s=>s.disc>=50});
+ACH.push({id:"rank_gold",icon:"🥇",name:"Золотая воля",desc:"Дисциплина 75+",test:s=>s.disc>=75});
+ACH.push({id:"rank_plat",icon:"💎",name:"Платиновая воля",desc:"Дисциплина 100",test:s=>s.disc>=100});
+ACH.push({id:"inv1",icon:"🎒",name:"Первый предмет",desc:"1 предмет в инвентаре",test:s=>s.inv.length>=1});
+ACH.push({id:"inv5",icon:"🎒",name:"Коллекция",desc:"5 предметов",test:s=>s.inv.length>=5});
+ACH.push({id:"inv10",icon:"🎒",name:"Хранитель наград",desc:"10 предметов",test:s=>s.inv.length>=10});
+ACH.push({id:"inv25",icon:"🎒",name:"Музей наград",desc:"25 предметов",test:s=>s.inv.length>=25});
+ACH.push({id:"season_week",icon:"⚡",name:"Неделя силы",desc:"Заверши сезон недели",test:s=>s.seasonCompleted.week>=1});
+ACH.push({id:"season_month",icon:"🧱",name:"Месяц дисциплины",desc:"Заверши сезон месяца",test:s=>s.seasonCompleted.month>=1});
+ACH.push({id:"season_three",icon:"🔁",name:"Сезонник",desc:"Заверши 3 сезона",test:s=>(s.seasonCompleted.week+s.seasonCompleted.month)>=3});
+ACH.push({id:"boss_first",icon:"🐉",name:"Убийца боссов",desc:"Победи босса",test:s=>s.bossKills>=1});
+ACH.push({id:"boss_3",icon:"🐉",name:"Охотник на боссов",desc:"Победи 3 боссов",test:s=>s.bossKills>=3});
+ACH.push({id:"boss_10",icon:"🐉",name:"Гроза боссов",desc:"Победи 10 боссов",test:s=>s.bossKills>=10});
+ACH.push({id:"boss_all",icon:"🌌",name:"Истребитель легенд",desc:"Победи все 6 видов боссов",test:s=>Object.keys(s.bossTypes||{}).length>=BOSSES.length});
+ACH.push({id:"mega_first",icon:"🐲",name:"Убийца мега-боссов",desc:"Победи мега-босса месяца",test:s=>s.mbKills>=1});
+ACH.push({id:"mega_3",icon:"🐲",name:"Коллекционер сердец",desc:"Победи 3 мега-боссов",test:s=>s.mbKills>=3});
+ACH.push({id:"duel_first",icon:"⚔️",name:"Победа над собой",desc:"Выиграй дуэль недели",test:s=>s.duelWins>=1});
+ACH.push({id:"duel_5",icon:"⚔️",name:"Доминирование",desc:"Выиграй 5 дуэлей",test:s=>s.duelWins>=5});
+ACH.push({id:"edit_first",icon:"✏️",name:"Первая правка",desc:"Отредактируй квест/награду",test:s=>s.edits>=1});
+ACH.push({id:"edit_10",icon:"🛠️",name:"Настройщик",desc:"10 правок",test:s=>s.edits>=10});
+ACH.push({id:"early_bird",icon:"🌅",name:"Ранняя пташка",desc:"Квест до 8 утра",test:s=>s.lastHour!==null&&s.lastHour<8});
+ACH.push({id:"night_owl",icon:"🦉",name:"Сова",desc:"Квест после 23:00",test:s=>s.lastHour!==null&&s.lastHour>=23});
+ACH.push({id:"weekend_warrior",icon:"🎉",name:"Выходной воин",desc:"Квест в сб/вс",test:s=>s.lastDow===0||s.lastDow===6});
+ACH.push({id:"full_clear_1",icon:"💯",name:"Полное зачищение",desc:"Все квесты за день",test:s=>s.fullClears>=1});
+ACH.push({id:"full_clear_5",icon:"🧾",name:"Машина режима",desc:"5 полных зачисток",test:s=>s.fullClears>=5});
+ACH.push({id:"million",icon:"🤑",name:"Миллионер",desc:"Заработай 1 000 000",test:s=>s.earned>=1000000});
+ACH.push({id:"pet_happy",icon:"🐾",name:"Счастливый зверь",desc:"Настроение питомца 90+",test:s=>s.pet.mood>=90});
+ACH.push({id:"pet_dragon",icon:"🐉",name:"Драконовод",desc:"Питомец 5 уровня",test:s=>petLevel()>=5});
+ACH.push({id:"chain_first",icon:"📜",name:"Первая цепочка",desc:"Заверши цепочку квестов",test:s=>s.chainCount>=1});
+ACH.push({id:"chain_10",icon:"📜",name:"Мастер цепочек",desc:"10 цепочек",test:s=>s.chainCount>=10});
+ACH.push({id:"dq_first",icon:"🎲",name:"Игрок с удачей",desc:"Выполни случайный квест",test:s=>s.dqCount>=1});
+ACH.push({id:"dq_7",icon:"🎲",name:"Неделя удачи",desc:"7 случайных квестов",test:s=>s.dqCount>=7});
+ACH.push({id:"bank_first",icon:"🏦",name:"Первый вклад",desc:"Положи деньги в банк",test:s=>s.bankDeps>=1});
+ACH.push({id:"bank_10k",icon:"🏦",name:"Капиталист",desc:"Вклад 10 000+",test:s=>s.bank.dep>=10000});
+ACH.push({id:"bank_int",icon:"💹",name:"Процентщик",desc:"Заработай 1000 процентов",test:s=>s.bank.interest>=1000});
+ACH.push({id:"rest_first",icon:"😴",name:"Легальный отдых",desc:"Возьми день отдыха",test:s=>s.restDays.length>=1});
+ACH.push({id:"rest_4",icon:"😴",name:"Баланс жизни",desc:"4 дня отдыха",test:s=>s.restDays.length>=4});
+ACH.push({id:"sleep_7",icon:"🌙",name:"Неделя сна",desc:"7 дней хорошего сна подряд",test:s=>s.bestSleepStreak>=7});
+ACH.push({id:"sleep_30",icon:"🌙",name:"Сонный мастер",desc:"30 дней хорошего сна",test:s=>s.bestSleepStreak>=30});
+ACH.push({id:"skill_1k",icon:"🧠",name:"Специалист",desc:"Ветка навыков 1000+",test:s=>Math.max(s.skills.body,s.skills.mind,s.skills.work,s.skills.home)>=1000});
+ACH.push({id:"skill_bal",icon:"⚖️",name:"Гармония",desc:"Все 4 ветки по 500+",test:s=>s.skills.body>=500&&s.skills.mind>=500&&s.skills.work>=500&&s.skills.home>=500});
+ACH.push({id:"photo_first",icon:"📷",name:"Фотограф",desc:"Добавь награду со своим фото",test:s=>s.rewards.some(r=>String(r.img||"").startsWith("data:image"))});
+addTier("coll","🎖️","Коллекционер","Открой достижений: {v}",[5,15,30,60,80,100],(s,v)=>s.u.length>=v);
+function toast(m,type=""){const d=document.createElement("div");d.className="toast "+type;d.textContent=m;toasts.appendChild(d);setTimeout(()=>d.remove(),3800)}
+function check(notify=false){const newly=[];let ch=true;while(ch){ch=false;for(const a of ACH)if(!S.u.includes(a.id)&&a.test(S)){S.u.push(a.id);newly.push(a);ch=true}}
+if(newly.length)save();
+if(notify&&newly.length){newly.slice(0,6).forEach(a=>toast("🏆 Достижение: "+a.name,"success"));if(newly.length>6)toast("И ещё "+(newly.length-6)+" достижений!","success");playSound("achievement")}
+return newly}
+function media(it,fb){const url=it.img||(isUrl(it.i)?it.i:"");if(url)return `<div class="media"><img src="${esc(url)}" data-fallback="${fb}" alt=""></div>`;return `<div class="media"><div class="ico">${fb}</div></div>`}
+function rarityBadge(r){const k=r.rarity||"common";return `<span class="rarity ${k}">${RARITY_LABELS[k]}</span>`}
+function addInventory(t,i,type="reward",rarity="common",desc="",img=""){S.inv.unshift({id:"inv"+Date.now()+rand(100,999),t,i,img,date:today(),type,rarity,desc});if(S.inv.length>200)S.inv.pop();save()}
+function highestSkill(){const k=Object.keys(S.skills);return k.reduce((a,b)=>S.skills[b]>S.skills[a]?b:a,k[0])}
+function playerTitle(){
+if(S.headphonesBought>0)return"🎧 Легенда наушников";
+if(S.mbKills>0)return"🐲 Убийца мега-боссов";
+if(S.bossKills>=10)return"🐉 Гроза боссов";
+const hs=highestSkill();if(S.skills[hs]>=3000)return SKILL_META[hs].title;
+if(S.seasonCompleted.week+S.seasonCompleted.month>=3)return"🌟 Сезонник";
+if(S.s>=30)return"🔥 Железная серия";
+if(S.disc>=100)return"💎 Платиновая воля";
+if(S.q>=100)return"🎯 Квестоман";
+return"🧭 Искатель"}
+function questCard(q){const done=S.ct.includes(q.id);const sk=SKILL_META[q.sk]||SKILL_META.mind;
+return `<div class="card ${done?"done":""}">${media(q,emojiOf(q,"🎯"))}
+<div class="card-body"><b>${esc(q.t)}</b><div class="small">${sk.icon} ${sk.name} · +${fmt(q.p)} монет</div></div>
+<div class="card-actions"><button data-action="doneQuest" data-id="${q.id}" ${done?"disabled":""}>${done?"✅":"Выполнить"}</button>
+<button class="mini" data-action="editQuest" data-id="${q.id}">✏️</button>
+${q.id.startsWith("c")?`<button class="danger mini" data-action="delQuest" data-id="${q.id}">✕</button>`:""}</div></div>`}
+function rewardCard(r){const bs=r.id==="headphones"&&S.headphonesBought>0;const can=S.coins>=r.p;
+return `<div class="card r-${r.rarity||"common"} ${r.super?"super-item":""}">${media(r,emojiOf(r,"🎁"))}
+<div class="card-body">${rarityBadge(r)}<b>${esc(r.t)}</b>${r.desc?`<div class="small">${esc(r.desc)}</div>`:""}<div class="price">🪙 ${fmt(r.p)}</div>${r.bought?`<div class="small">Куплено: ${r.bought}</div>`:""}</div>
+<div class="card-actions">${bs?`<button disabled>✅ Получено</button>`:`<button data-action="buy" data-id="${r.id}" class="${can?"":"dim"}">Купить</button>`}
+<button class="mini" data-action="editReward" data-id="${r.id}">✏️</button>
+${r.id.startsWith("c")?`<button class="danger mini" data-action="delReward" data-id="${r.id}">✕</button>`:""}</div></div>`}
+function invCard(it){return `<div class="card r-${it.rarity||"common"}">${media(it,emojiOf(it,"🎁"))}<div class="card-body">${rarityBadge(it)}<b>${esc(it.t)}</b>${it.desc?`<div class="small">${esc(it.desc)}</div>`:""}<div class="small">Получено: ${it.date}</div></div></div>`}
+function buffCard(b){const left=Math.max(0,diffDays(today(),b.exp));const info=(b.uses!==null&&b.uses!==undefined)?("Использований: "+b.uses):("Осталось дней: "+left);
+return `<div class="card r-${b.rarity||"rare"}"><div class="media"><div class="ico">${b.icon}</div></div><div class="card-body">${rarityBadge(b)}<b>${esc(b.name)}</b><div class="small">${esc(b.desc||"")}</div><div class="small">${info}</div></div></div>`}
+function achCard(a){const un=S.u.includes(a.id);return `<div class="ach ${un?"un":""}"><div class="ai">${a.icon}</div><b>${a.name}</b><div class="small">${a.desc}</div></div>`}
+function lastDays(n){const a=[];for(let i=n-1;i>=0;i--){const d=addDays(today(),-i);const h=S.hist.find(x=>x.d===d);a.push({d,label:d.slice(8)+"."+d.slice(5,7),e:h?h.e:0})}return a}
+function calendarHTML(){const now=new Date(),y=now.getFullYear(),m=now.getMonth();const dim=new Date(y,m+1,0).getDate();const t=today();
+const mn=now.toLocaleDateString("ru-RU",{month:"long",year:"numeric"});const fd=(new Date(y,m,1).getDay()+6)%7;let c="";
+for(let i=0;i<fd;i++)c+=`<div class="cal-cell blank"></div>`;
+for(let d=1;d<=dim;d++){const ds=y+"-"+String(m+1).padStart(2,"0")+"-"+String(d).padStart(2,"0");let cls="cal-cell";
+if(ds>t||ds<S.created)cls+=" future";
+else{if(S.restDays.includes(ds))cls+=" rest";else if(goalMet(ds))cls+=" ok";else if(S.hist.some(h=>h.d===ds))cls+=" part";else if(ds<t)cls+=" miss"}
+if(ds===t)cls+=" today";c+=`<div class="${cls}"><span>${d}</span></div>`}
+return `<div class="small" style="margin-bottom:10px;text-transform:capitalize">${mn}</div><div class="cal">${c}</div><div class="small" style="margin-top:10px">🟩 цель · 🟨 начат · 🟥 пропуск · 🟦 отдых · контур — сегодня</div>`}
+//====END3====
