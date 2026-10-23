@@ -653,3 +653,179 @@ return `<div class="panel profile"><div class="avatar-large">${S.profile.avatar?
 <div class="panel"><h2>Статистика</h2><div class="stats profile-stats">${st}</div></div>
 <div class="panel"><button class="danger" data-action="reset">Сбросить весь прогресс</button></div>`}
 //====END4====
+//====PART5====
+function render(){ensureToday();document.documentElement.setAttribute("data-theme",S.theme);
+const l=levelInfo(S.earned);const hp=S.rewards.find(r=>r.id==="headphones")||DEFAULT_REWARDS[0];const hpCost=hp.p||60000;const hpDone=S.headphonesBought>0;const hpProg=Math.min(100,S.coins/hpCost*100);
+const rank=discRank(S.disc);
+const tabs=[["quests","⚔️ Квесты"],["shop","🛒 Магазин"],["inv","🎒 Инвентарь"],["seasons","🌟 Сезоны"],["ach","🏆 Достижения"],["progress","📈 Прогресс"],["profile","👤 Профиль"]];
+const tabsHtml=tabs.map(([id,lb])=>`<button class="tab ${S.tab===id?"active":""}" data-action="tab" data-tab="${id}">${lb}</button>`).join("");
+let content="";
+if(S.tab==="quests")content=questsTab();
+if(S.tab==="shop")content=shopTab();
+if(S.tab==="inv")content=inventoryTab();
+if(S.tab==="seasons")content=seasonsTab();
+if(S.tab==="ach")content=achTab();
+if(S.tab==="progress")content=progressTab();
+if(S.tab==="profile")content=profileTab();
+const levelText=l.next?`До уровня ${l.level+1} осталось ${fmt(l.next-S.earned)} монет`:"Максимальный уровень 🎉";
+app.innerHTML=`<div class="shell">
+<header class="hero panel"><div class="hero-left">
+<div class="ring" style="--p:${Math.round(l.prog)}"><div class="avatar">${S.profile.avatar?`<img src="${esc(S.profile.avatar)}">`:"🧙‍️"}</div></div>
+<div><h1 class="name">${esc(S.profile.name||"Игрок")}</h1>
+<div class="badges"><span class="badge gold">✦ PREMIUM</span><span class="badge gold">Уровень ${l.level} · ${l.name}</span><span class="badge">${playerTitle()}</span><span class="badge">🔥 ${S.s}</span><span class="badge">${rank.icon} ${rank.name}</span>${S.s>=3?`<span class="badge gold">⚡ +20%</span>`:""}</div></div></div>
+<div class="hero-right"><button class="icon-btn" data-action="toggleSound">${S.sound?"🔊":""}</button><button class="icon-btn" data-action="toggleTheme">${S.theme==="dark"?"☀️":""}</button></div></header>
+<section class="stats"><div class="stat"><b>🪙 ${fmt(S.coins)}</b><span>Баланс</span></div><div class="stat"><b>${fmt(S.earned)}</b><span>Заработано</span></div><div class="stat"><b>${S.disc}/100</b><span>Дисциплина</span></div><div class="stat"><b>${S.u.length}/${ACH.length}</b><span>Достижения</span></div></section>
+<section class="panel"><div class="small">Уровень ${l.level} · ${l.name}</div><div style="margin:10px 0" class="bar"><div class="fill" style="width:${l.prog}%"></div></div><div class="small">${levelText}</div></section>
+<section class="panel super ${hpDone?"done":""}"><div class="super-media">${media(hp,emojiOf(hp,"🎧"))}</div><div>
+<div class="small gold">Ближайшая супер-награда</div><h2>${esc(hp.t||"Новые наушники")}</h2>
+<div class="small">${hpDone?"Получено! 🎉":"Стоимость: "+fmt(hpCost)+" монет (~1,5-2 мес)."}</div>
+<div style="margin-top:10px" class="bar big"><div class="fill gold" style="width:${hpProg}%"></div></div>
+<div class="super-actions"><span class="small">${fmt(Math.min(S.coins,hpCost))} / ${fmt(hpCost)}</span>
+${hpDone?`<span class="badge gold">✅ Получено</span>`:`<button data-action="buy" data-id="headphones" class="${S.coins>=hpCost?"":"dim"}">${S.coins>=hpCost?"Купить сейчас":"Копить"}</button>`}</div></div></section>
+<nav class="tabs panel">${tabsHtml}</nav><main class="content">${content}</main></div>`;
+checkRemind()}
+function checkRemind(){if(!S.remind||typeof Notification==="undefined"||Notification.permission!=="granted")return;
+const h=new Date().getHours();const t=today();
+if(h>=20&&!goalMet(t)&&S.remindDate!==t){S.remindDate=t;save();try{new Notification("Life Quest",{body:"Цель дня ещё не закрыта! Успей выполнить 3 квеста."})}catch(e){}}}
+function setTab(t){S.tab=t;save();playSound("click");render()}
+function toggleSound(){S.sound=!S.sound;save();if(S.sound)playSound("coin");render()}
+function toggleTheme(){S.theme=S.theme==="dark"?"light":"dark";save();playSound("click");render()}
+function coreComplete(q,isDQ){const t=today();const oldLevel=levelInfo(S.earned).level;
+S.lastHour=new Date().getHours();S.lastDow=new Date().getDay();
+let streakAfter,guardUsed=false;
+if(S.ld===t)streakAfter=S.s;else if(S.ld===yest())streakAfter=S.s+1;else{streakAfter=1;if(gapAllRest(S.ld||t))streakAfter=S.s+1;else{const g=S.buffs.find(b=>b.kind==="streakGuard"&&b.uses>0&&b.exp>=t);if(g){streakAfter=S.s+1;g.uses--;if(g.uses<=0)S.buffs=S.buffs.filter(x=>x!==g);guardUsed=true}}}
+const buff=streakAfter>=3;let mult=1;if(buff)mult+=0.2;mult+=buffCoinPct()/100;
+if(S.pet.mood>=80)mult+=0.05;if(sleptGood(t))mult+=0.10;
+let amount=Math.round(q.p*mult);let doubled=false;
+const db=S.buffs.find(b=>b.kind==="doubleNext"&&b.uses>0&&b.exp>=t);
+if(db){amount*=2;doubled=true;db.uses--;if(db.uses<=0)S.buffs=S.buffs.filter(x=>x!==db)}
+if(isDQ)amount=Math.max(amount,q.p*2);
+const beforeGoal=S.tp>=S.goal||S.tc>=3;
+S.coins+=amount;S.earned+=amount;S.q++;S.tc++;S.tp+=amount;S.bc=Math.max(S.bc,S.tc);S.bp=Math.max(S.bp,S.tp);
+updateHist(amount);
+S.skills[q.sk]=(S.skills[q.sk]||0)+amount;
+S.pet.xp+=Math.round(amount/10);S.pet.mood=clamp(S.pet.mood+1);
+if(S.ld!==t){S.s=streakAfter;S.ld=t}
+if(!S.ad.includes(t))S.ad.push(t);
+S.ct.push(q.id);S.disc=clamp(S.disc+1);
+if(S.tc>=S.quests.length&&S.quests.length>=5&&S.fullClearDate!==t){S.fullClearDate=t;S.fullClears++;toast("💯 Все квесты за день выполнены!","success")}
+const afterGoal=S.tp>=S.goal||S.tc>=3;
+if(!beforeGoal&&afterGoal){S.disc=clamp(S.disc+4);toast("🎯 Цель дня выполнена! +4 дисциплины","success");playSound("level")}
+for(const c of CHAINS){if(S.chainsDone[c.id]!==t&&c.ids.every(id=>S.ct.includes(id))){S.chainsDone[c.id]=t;S.chainCount++;S.coins+=c.bonus;S.earned+=c.bonus;toast("📜 Цепочка «"+c.name+"» завершена! +"+c.bonus,"success")}}
+if(guardUsed)toast("🔥 Страж серии сохранил серию!","success");
+if(doubled)toast("✨ Двойной удар: ×2 монет!","success");
+else if(buff)toast("⚡ Бафф серии: +20%","success");
+save();playSound("coin");
+evaluateSeasons(true);checkBoss(true);checkMega(true);
+const nl=levelInfo(S.earned).level;if(nl>oldLevel){toast("⬆️ Новый уровень: "+nl+"!","success");playSound("level")}
+check(true);render()}
+function doneQuest(id){ensureToday();if(S.ct.includes(id))return;const q=S.quests.find(x=>x.id===id);if(!q)return;coreComplete(q,false)}
+function doneDQ(){ensureToday();if(S.dqDoneDate===today()||!S.dq)return;const q={id:"dq"+today(),t:S.dq.t,i:S.dq.i,p:S.dq.p,sk:S.dq.sk};S.dqDoneDate=today();S.dqCount++;coreComplete(q,true)}
+function addQuest(){const t=val("qt"),i=val("qi"),p=parseInt(val("qp"),10),sk=val("q_sk");
+if(!t||!(p>0)){playSound("error");toast("Название и очки > 0","error");return}
+S.quests.push({id:"c"+Date.now(),t,i:i||"🎯",p,sk:SKILL_META[sk]?sk:"mind"});S.cq++;save();playSound("click");toast("Квест добавлен","success");check(true);render()}
+function delQuest(id){S.quests=S.quests.filter(x=>x.id!==id);S.ct=S.ct.filter(x=>x!==id);save();playSound("click");render()}
+function addReward(){const t=val("rt"),i=val("ri"),p=parseInt(val("rp"),10);
+if(!t||!(p>0)){playSound("error");toast("Название и цена > 0","error");return}
+S.rewards.push({id:"c"+Date.now(),t,i:i||"🎁",p,rarity:"common",img:pendingRewardPhoto||""});
+pendingRewardPhoto="";S.cr++;save();playSound("click");toast("Награда добавлена","success");check(true);render()}
+function buyReward(id){let r=S.rewards.find(x=>x.id===id);if(!r&&id==="headphones")r=DEFAULT_REWARDS[0];if(!r)return;
+if(S.coins<r.p){playSound("error");toast("Не хватает монет!","error");return}
+if(r.effect==="chestRare"||r.effect==="chestLegend"){const isR=r.effect==="chestRare";
+if(S.chestDayDate!==today()){S.chestDayDate=today();S.chestDayRare=0;S.chestDayLegend=0}
+if(isR&&S.chestDayRare>=1){playSound("error");toast("Редкий сундук: 1 в день","error");return}
+if(!isR&&S.chestDayLegend>=1){playSound("error");toast("Легендарный: 1 в день","error");return}}
+S.coins-=r.p;S.spent+=r.p;S.purchases++;
+if(r.rarity==="rare")S.rareBought++;if(r.rarity==="epic")S.epicBought++;if(r.rarity==="legendary")S.legendBought++;
+if(id==="headphones")S.headphonesBought++;
+if(S.rewards.includes(r))r.bought=(r.bought||0)+1;
+let extra="";
+if(r.effect==="chestRare"||r.effect==="chestLegend"){const isR=r.effect==="chestRare";
+if(isR)S.chestDayRare++;else S.chestDayLegend++;
+const pay=isR?rand(300,2700):rand(2000,14000);S.coins+=pay;let bm="";
+if(Math.random()<(isR?0.3:0.5)){const pool=isR?RARE_BUFFS:LEGEND_BUFFS;const b=addBuff(pool[rand(0,pool.length-1)]);bm=" Бафф: "+b.icon+" "+b.name+"!"}
+S.chestsBought++;addInventory(r.t,emojiOf(r,"🎁"),"reward",r.rarity||"common","Выпало: "+fmt(pay)+" монет."+bm,r.img||"");extra=" Выпало "+fmt(pay)+" монет."+bm}
+else{addInventory(r.t,emojiOf(r,"🎁"),"reward",r.rarity||"common","",r.img||"")}
+save();playSound("buy");toast("🛍️ Куплено: "+r.t+"!"+extra,"success");check(true);render()}
+function delReward(id){S.rewards=S.rewards.filter(x=>x.id!==id);save();playSound("click");render()}
+function startEditQuest(id){S.edit={kind:"quest",id};save();playSound("click");render()}
+function startEditReward(id){S.edit={kind:"reward",id};pendingEditPhoto="";editClearPhoto=false;save();playSound("click");render()}
+function cancelEdit(){S.edit=null;pendingEditPhoto="";editClearPhoto=false;pendingRewardPhoto="";save();playSound("click");render()}
+function saveEdit(){if(!S.edit)return;
+if(S.edit.kind==="quest"){const q=S.quests.find(x=>x.id===S.edit.id);if(!q){S.edit=null;render();return}
+const t=val("eq_t"),i=val("eq_i"),p=parseInt(val("eq_p"),10),sk=val("eq_sk");
+if(!t||!(p>0)){playSound("error");toast("Название и очки > 0","error");return}
+q.t=t;q.i=i||"🎯";q.p=p;q.sk=SKILL_META[sk]?sk:"mind";S.edits++}
+if(S.edit.kind==="reward"){const r=S.rewards.find(x=>x.id===S.edit.id);if(!r){S.edit=null;render();return}
+const t=val("er_t"),i=val("er_i"),p=parseInt(val("er_p"),10),rr=val("er_r");
+if(!t||!(p>0)){playSound("error");toast("Название и цена > 0","error");return}
+r.t=t;r.i=i||"🎁";r.p=p;r.rarity=RARITY_LABELS[rr]?rr:"common";
+if(pendingEditPhoto){r.img=pendingEditPhoto}
+else if(editClearPhoto){r.img=""}
+pendingEditPhoto="";editClearPhoto=false;S.edits++}
+S.edit=null;save();playSound("click");toast("Сохранено","success");check(true);render()}
+function saveGoal(){const g=parseInt(val("goalInput"),10);if(!(g>=50&&g<=5000)){playSound("error");toast("Цель: 50–5000","error");return}
+S.goal=g;S.edits++;save();playSound("click");toast("Цель дня сохранена","success");render()}
+function bankDep(){const a=parseInt(val("bankAmt"),10);if(!(a>0)||a>S.coins){playSound("error");toast("Недостаточно монет","error");return}
+S.coins-=a;S.bank.dep+=a;S.bankDeps++;save();playSound("coin");toast("🏦 Вложено "+fmt(a),"success");check(true);render()}
+function bankWith(){const a=parseInt(val("bankAmt"),10);if(!(a>0)||a>S.bank.dep){playSound("error");toast("На вкладе меньше","error");return}
+S.bank.dep-=a;S.coins+=a;save();playSound("coin");toast("🏦 Снято "+fmt(a),"success");render()}
+function feedPet(){if(S.petFedDate===today())return;S.petFedDate=today();S.pet.mood=clamp(S.pet.mood+5);save();playSound("coin");toast("🍖 Питомец доволен! +5 настроения","success");check(true);render()}
+function takeRest(){const wm=weekMonday(today());if(S.restUsedWeek===wm||S.restDays.includes(today()))return;
+S.restDays.push(today());S.restUsedWeek=wm;save();playSound("level");toast("😴 Легальный отдых взят. Сегодня без штрафов.","success");check(true);render()}
+function saveSleep(){const h=parseFloat(val("sleepH"));if(isNaN(h)||h<0||h>24){playSound("error");toast("Часы: 0–24","error");return}
+const ex=S.sleepLog.find(e=>e.d===today());if(ex)ex.h=h;else S.sleepLog.push({d:today(),h});
+if(S.sleepLog.length>400)S.sleepLog=S.sleepLog.slice(-400);
+const st=sleepStreak();S.bestSleepStreak=Math.max(S.bestSleepStreak,st);
+save();playSound("click");toast(h>=7&&h<=9?"😴 Отличный сон! Сегодня +10% монет":"Сон сохранён","success");check(true);render()}
+function toggleRemind(){if(typeof Notification==="undefined"){toast("Браузер не поддерживает уведомления","error");return}
+if(!S.remind){Notification.requestPermission().then(p=>{if(p==="granted"){S.remind=true;save();toast("🔔 Напоминания включены","success")}else toast("Разрешение не дано","error");render()})}
+else{S.remind=false;save();toast("🔕 Напоминания выключены","success");render()}}
+function startDay(){S.reportDate=today();save();playSound("level");render()}
+function saveProfile(){S.profile.name=val("pname")||"Игрок";S.profile.bio=val("pbio");S.profile.saved=1;save();playSound("click");toast("Профиль сохранён","success");check(true);render()}
+function handleAvatar(f){if(!f)return;fileToDataURL(f,180,0.85,d=>{if(!d){toast("Не удалось загрузить","error");return}
+S.profile.avatar=d;save();playSound("coin");toast("Аватар обновлён","success");check(true);render()})}
+function resetAll(){if(confirm("Точно сбросить весь прогресс?")){try{localStorage.removeItem("life-quest-pro-max")}catch(e){}location.reload()}}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-action]");if(!b)return;const a=b.dataset.action;
+if(a==="tab")setTab(b.dataset.tab);
+if(a==="toggleSound")toggleSound();
+if(a==="toggleTheme")toggleTheme();
+if(a==="startDay")startDay();
+if(a==="feedPet")feedPet();
+if(a==="takeRest")takeRest();
+if(a==="doneDQ")doneDQ();
+if(a==="addQuest")addQuest();
+if(a==="doneQuest")doneQuest(b.dataset.id);
+if(a==="delQuest")delQuest(b.dataset.id);
+if(a==="editQuest")startEditQuest(b.dataset.id);
+if(a==="editReward")startEditReward(b.dataset.id);
+if(a==="removeEditPhoto"){editClearPhoto=true;pendingEditPhoto="";playSound("click");render()}
+if(a==="saveEdit")saveEdit();
+if(a==="cancelEdit")cancelEdit();
+if(a==="addReward")addReward();
+if(a==="buy")buyReward(b.dataset.id);
+if(a==="delReward")delReward(b.dataset.id);
+if(a==="startSeason")startSeason(b.dataset.id);
+if(a==="bankDep")bankDep();
+if(a==="bankWith")bankWith();
+if(a==="saveGoal")saveGoal();
+if(a==="saveSleep")saveSleep();
+if(a==="toggleRemind")toggleRemind();
+if(a==="saveProfile")saveProfile();
+if(a==="reset")resetAll()});
+document.addEventListener("change",e=>{
+if(e.target.id==="avatarInput"&&e.target.files&&e.target.files[0])handleAvatar(e.target.files[0]);
+if(e.target.id==="rewardPhoto"&&e.target.files&&e.target.files[0])fileToDataURL(e.target.files[0],320,0.82,d=>{pendingRewardPhoto=d||"";const p=document.getElementById("rp_prev");if(p&&d){p.src=d;p.hidden=false}});
+if(e.target.id==="editRewardPhoto"&&e.target.files&&e.target.files[0])fileToDataURL(e.target.files[0],320,0.82,d=>{pendingEditPhoto=d||"";editClearPhoto=false;const p=document.getElementById("erp_prev");if(p&&d){p.src=d;p.hidden=false}})});
+document.addEventListener("error",e=>{const img=e.target;if(img&&img.tagName==="IMG"&&img.hasAttribute("data-fallback")){const d=document.createElement("div");d.className="ico";d.textContent=img.getAttribute("data-fallback")||"🖼️";img.replaceWith(d)}},true);
+document.addEventListener("pointerdown",ensureAudio,{once:true});
+setInterval(()=>{ensureToday();checkRemind()},600000);
+ensureToday();
+const penalty=applyMissedDays();
+evaluateSeasons(true);checkBoss(true);checkMega(true);check(false);render();
+if(penalty.applied>0||penalty.blocked>0){setTimeout(()=>{let m="";if(penalty.blocked>0)m+="🛡️ Щит заблокировал: "+penalty.blocked+". ";if(penalty.applied>0)m+="🚨 Пропусков: "+penalty.applied+". Штраф: -"+fmt(penalty.fineCoins);toast(m,penalty.applied>0?"error":"success");if(penalty.applied>0)playSound("error")},600)}
+document.title="Life Quest Ultimate Premium ✓";
+//====END5====
+</script>
+</body>
+</html>
